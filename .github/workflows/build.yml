@@ -27,12 +27,7 @@ jobs:
           uv sync
 
       - name: Build EXE
-        run: |
-          uv run pyinstaller ^
-            --name DownloadOrganizer ^
-            --windowed ^
-            --onefile ^
-            src/main.py
+        run: uv run pyinstaller --name DownloadOrganizer --windowed --onefile main.py
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
