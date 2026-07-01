@@ -7,14 +7,14 @@ from __future__ import annotations
 import logging
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget, QMainWindow
 from qfluentwidgets import FluentWindow, PrimaryPushButton, ProgressBar
 
 
 logger = logging.getLogger(__name__)
 
 
-class MainWindow(FluentWindow):
+class MainWindow(QMainWindow):
     """
     Main application window.
     """
