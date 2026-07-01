@@ -12,9 +12,9 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from src.config.settings import Settings
-from src.gui.main_window import MainWindow
-from src.utils.logger import setup_logging
+from config.settings import Settings
+from gui.main_window import MainWindow
+from utils.logger import setup_logging
 
 
 def main() -> int:
