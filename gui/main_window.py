@@ -16,9 +16,10 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QVBoxLayout,
     QWidget,
+    QMainWindow,
 )
 
-from qfluentwidgets import FluentWindow, ProgressBar
+from qfluentwidgets import ProgressBar
 
 from config.settings import Settings
 from gui.handlers import UIHandler
@@ -31,7 +32,7 @@ from utils.path_utils import get_downloads_folder
 logger = logging.getLogger(__name__)
 
 
-class MainWindow(FluentWindow):
+class MainWindow(QMainWindow):
     """
     Main application window.
     """
