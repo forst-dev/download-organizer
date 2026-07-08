@@ -55,28 +55,29 @@ class AnalyzerWorker(QObject):
 
 
 def create_analyzer_thread(folder: Path) -> tuple[QThread, AnalyzerWorker]:
-    """
-    Create and configure an analyzer worker thread.
-
-    Args:
-        folder: Folder to analyze.
-
-    Returns:
-        tuple[QThread, AnalyzerWorker]
-    """
+    logger.info("1. Create QThread")
     thread = QThread()
+
+    logger.info("2. Create Worker")
     worker = AnalyzerWorker(folder)
 
+    logger.info("3. Move Worker")
     worker.moveToThread(thread)
 
+    logger.info("4. Connect started")
     thread.started.connect(worker.run)
 
+    logger.info("5. Connect finished")
     worker.finished.connect(thread.quit)
     worker.finished.connect(worker.deleteLater)
 
+    logger.info("6. Connect error")
     worker.error.connect(thread.quit)
     worker.error.connect(worker.deleteLater)
 
+    logger.info("7. Connect thread finished")
     thread.finished.connect(thread.deleteLater)
+
+    logger.info("8. Return")
 
     return thread, worker

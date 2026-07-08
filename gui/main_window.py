@@ -5,6 +5,7 @@ Main application window.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -114,18 +115,25 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(True)
         self.set_status("분석 중...")
         self.result_label.clear()
-        logger.info("Creating analyzer thread...")
 
-        self._thread, self._worker = create_analyzer_thread(
-            Path(folder)
-        )
-        logger.info("Starting analyzer thread...")
+        try:
+            logger.info("Creating analyzer thread...")
 
-        self._worker.finished.connect(self.on_analysis_finished)
-        self._worker.error.connect(self.on_analysis_error)
+            self._thread, self._worker = create_analyzer_thread(
+                Path(folder)
+            )
 
-        self._thread.start()
-        logger.info("Analyzer thread started.")
+            logger.info("Starting analyzer thread...")
+
+            self._worker.finished.connect(self.on_analysis_finished)
+            self._worker.error.connect(self.on_analysis_error)
+
+            self._thread.start()
+
+            logger.info("Analyzer thread started.")
+
+        except Exception:
+            logger.exception("Failed to create analyzer thread.")
 
     def on_analysis_finished(
         self,
