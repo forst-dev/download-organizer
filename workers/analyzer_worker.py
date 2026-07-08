@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QThread, Signal
+from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from services.analyzer import AnalysisResult, Analyzer
 
@@ -20,7 +20,7 @@ class AnalyzerWorker(QObject):
     Worker object for analyzing a folder in a background thread.
     """
 
-    finished = Signal(AnalysisResult)
+    finished = Signal(object)
     error = Signal(str)
 
     def __init__(self, folder: Path) -> None:
@@ -34,6 +34,7 @@ class AnalyzerWorker(QObject):
 
         self._folder = folder
 
+    @Slot()
     def run(self) -> None:
         """
         Execute folder analysis.

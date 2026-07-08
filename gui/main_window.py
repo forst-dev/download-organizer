@@ -114,15 +114,18 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(True)
         self.set_status("분석 중...")
         self.result_label.clear()
+        logger.info("Creating analyzer thread...")
 
         self._thread, self._worker = create_analyzer_thread(
             Path(folder)
         )
-        
+        logger.info("Starting analyzer thread...")
+
         self._worker.finished.connect(self.on_analysis_finished)
         self._worker.error.connect(self.on_analysis_error)
 
         self._thread.start()
+        logger.info("Analyzer thread started.")
 
     def on_analysis_finished(
         self,
