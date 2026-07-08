@@ -11,22 +11,27 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFileDialog,
     QLabel,
-    QMainWindow,
     QMessageBox,
+    QPushButton,
+    QTableWidget,
     QVBoxLayout,
     QWidget,
 )
-from qfluentwidgets import PrimaryPushButton, ProgressBar
 
+from qfluentwidgets import FluentWindow, ProgressBar
+
+from config.settings import Settings
+from gui.handlers import UIHandler
+from gui.table_manager import TableManager
+from gui.worker_manager import WorkerManager
 from services.analyzer import AnalysisResult
 from utils.format_utils import format_size
 from utils.path_utils import get_downloads_folder
-from workers.analyzer_worker import create_analyzer_thread
 
 logger = logging.getLogger(__name__)
 
 
-class MainWindow(QMainWindow):
+class MainWindow(FluentWindow):
     """
     Main application window.
     """
@@ -34,73 +39,135 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        self._thread = None
-        self._worker = None
-
-        self.setWindowTitle("Download Organizer")
-        self.resize(800, 600)
+        self.current_folder: Path | None = None
 
         self._init_ui()
-        self._connect_signals()
+
+        self.table_manager = TableManager(
+            self.result_table
+        )
+
+        self.handler = UIHandler(
+            self,
+            self.table_manager,
+        )
+
+        self.worker_manager = WorkerManager(
+            self.handler,
+        )
 
         logger.info("Main window initialized.")
-
+        
     def _init_ui(self) -> None:
         """
-        Initialize UI components.
+        Initialize UI.
         """
-        central_widget = QWidget()
-        layout = QVBoxLayout(central_widget)
 
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setSpacing(20)
+        self.setWindowTitle("Download Organizer")
 
-        self.title_label = QLabel("Download Organizer")
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.resize(1100, 750)
+
+        central = QWidget()
+
+        self.setCentralWidget(central)
+
+        layout = QVBoxLayout(central)
+
+        layout.setSpacing(15)
+        layout.setContentsMargins(
+            20,
+            20,
+            20,
+            20,
+        )
+
+        self.title_label = QLabel(
+            "📂 Download Organizer"
+        )
 
         font = self.title_label.font()
-        font.setPointSize(18)
+        font.setPointSize(20)
         font.setBold(True)
+
         self.title_label.setFont(font)
 
-        self.select_folder_button = PrimaryPushButton("폴더 선택")
-
-        self.status_label = QLabel("상태 : 준비 완료")
-
-        self.result_label = QLabel("")
-        self.result_label.setWordWrap(True)
-
-        self.progress_bar = ProgressBar()
-        self.progress_bar.setRange(0, 0)
-        self.progress_bar.setVisible(False)
+        self.title_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
 
         layout.addWidget(self.title_label)
-        layout.addSpacing(20)
-        layout.addWidget(self.select_folder_button)
+
+        self.status_label = QLabel(
+            "상태 : 준비 완료"
+        )
+
         layout.addWidget(self.status_label)
-        layout.addWidget(self.result_label)
+
+        self.summary_label = QLabel("")
+
+        layout.addWidget(self.summary_label)
+
+        self.select_folder_button = QPushButton(
+            "다운로드 폴더 선택"
+        )
+
+        layout.addWidget(
+            self.select_folder_button
+        )
+
+        self.large_file_button = QPushButton(
+            "큰 파일"
+        )
+
+        layout.addWidget(
+            self.large_file_button
+        )
+
+        self.old_file_button = QPushButton(
+            "오래된 파일"
+        )
+
+        layout.addWidget(
+            self.old_file_button
+        )
+
+        self.duplicate_button = QPushButton(
+            "중복 파일"
+        )
+
+        layout.addWidget(
+            self.duplicate_button
+        )
+
+        self.progress_bar = ProgressBar()
+
+        self.progress_bar.setVisible(False)
+
         layout.addWidget(self.progress_bar)
-        layout.addStretch()
 
-        self.setCentralWidget(central_widget)
+        self.result_table = QTableWidget()
 
-    def _connect_signals(self) -> None:
-        """
-        Connect UI signals.
-        """
+        layout.addWidget(self.result_table)
+
         self.select_folder_button.clicked.connect(
             self.on_select_folder_clicked
         )
 
-    def set_status(self, message: str) -> None:
-        """
-        Update status label.
-        """
-        self.status_label.setText(f"상태 : {message}")
+        self.large_file_button.clicked.connect(
+            self.on_large_file_clicked
+        )
+
+        self.old_file_button.clicked.connect(
+            self.on_old_file_clicked
+        )
+
+        self.duplicate_button.clicked.connect(
+            self.on_duplicate_clicked
+        )
 
     def on_select_folder_clicked(self) -> None:
         """
-        Open folder dialog and start analysis.
+        Select a folder and start analysis.
         """
         folder = QFileDialog.getExistingDirectory(
             self,
@@ -111,43 +178,100 @@ class MainWindow(QMainWindow):
         if not folder:
             return
 
-        self.select_folder_button.setEnabled(False)
-        self.progress_bar.setVisible(True)
+        self.current_folder = Path(folder)
+
+        # Settings.save_last_folder(self.current_folder)
+
+        self.show_loading(True)
         self.set_status("분석 중...")
-        self.result_label.clear()
 
-        try:
-            logger.info("Creating analyzer thread...")
+        logger.info(
+            "Selected folder: %s",
+            self.current_folder,
+        )
 
-            self._thread, self._worker = create_analyzer_thread(
-                Path(folder)
-            )
+        self.worker_manager.start_analysis(
+            self.current_folder,
+        )
 
-            logger.info("Starting analyzer thread...")
+    def on_large_file_clicked(self) -> None:
+        """
+        Find large files.
+        """
+        if self.current_folder is None:
+            self.show_error("먼저 폴더를 선택해주세요.")
+            return
 
-            self._worker.finished.connect(self.on_analysis_finished)
-            self._worker.error.connect(self.on_analysis_error)
+        self.show_loading(True)
+        self.set_status("큰 파일 검색 중...")
 
-            self._thread.start()
+        self.worker_manager.start_large_file_search(
+            self.current_folder,
+        )
 
-            logger.info("Analyzer thread started.")
+    def on_old_file_clicked(self) -> None:
+        """
+        Find old files.
+        """
+        if self.current_folder is None:
+            self.show_error("먼저 폴더를 선택해주세요.")
+            return
 
-        except Exception:
-            logger.exception("Failed to create analyzer thread.")
+        self.show_loading(True)
+        self.set_status("오래된 파일 검색 중...")
 
-    def on_analysis_finished(
+        self.worker_manager.start_old_file_search(
+            self.current_folder,
+        )
+
+    def on_duplicate_clicked(self) -> None:
+        """
+        Find duplicate files.
+        """
+        if self.current_folder is None:
+            self.show_error("먼저 폴더를 선택해주세요.")
+            return
+
+        self.show_loading(True)
+        self.set_status("중복 파일 검색 중...")
+
+        self.worker_manager.start_duplicate_search(
+            self.current_folder,
+        )
+
+    def show_loading(
+        self,
+        loading: bool,
+    ) -> None:
+        """
+        Show or hide loading state.
+        """
+        self.progress_bar.setVisible(loading)
+
+        self.select_folder_button.setEnabled(not loading)
+        self.large_file_button.setEnabled(not loading)
+        self.old_file_button.setEnabled(not loading)
+        self.duplicate_button.setEnabled(not loading)
+
+    def set_status(
+        self,
+        text: str,
+    ) -> None:
+        """
+        Update status label.
+        """
+        self.status_label.setText(
+            f"상태 : {text}"
+        )
+
+    def show_summary(
         self,
         result: AnalysisResult,
     ) -> None:
         """
-        Called when analysis is completed.
+        Display analysis summary.
         """
-        self.progress_bar.setVisible(False)
-        self.select_folder_button.setEnabled(True)
-
-        self.set_status("분석 완료")
-
-        self.result_label.setText(
+        self.summary_label.setText(
             "\n".join(
                 [
                     f"파일 수 : {result.file_count:,}",
@@ -157,24 +281,27 @@ class MainWindow(QMainWindow):
             )
         )
 
-        logger.info("Analysis completed.")
+    def clear_summary(self) -> None:
+        """
+        Clear summary label.
+        """
+        self.summary_label.clear()
 
-    def on_analysis_error(
+    def show_error(
         self,
         message: str,
     ) -> None:
         """
-        Called when analysis fails.
+        Display an error dialog.
         """
-        self.progress_bar.setVisible(False)
-        self.select_folder_button.setEnabled(True)
-
-        self.set_status("오류 발생")
-
         QMessageBox.critical(
             self,
             "오류",
             message,
         )
 
-        logger.error("Analysis failed: %s", message)
+    def has_selected_folder(self) -> bool:
+        """
+        Check whether a folder is selected.
+        """
+        return self.current_folder is not None
