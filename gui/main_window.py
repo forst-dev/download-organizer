@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from qfluentwidgets import ProgressBar
+from qfluentwidgets import PrimaryPushButton
 
 from config.settings import Settings
 from gui.handlers import UIHandler
