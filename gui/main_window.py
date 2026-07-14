@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.current_folder: Path | None = None
+        self.category_panel = CategoryPanel()
 
         self._init_ui()
 
@@ -58,7 +59,6 @@ class MainWindow(QMainWindow):
         self.worker_manager = WorkerManager(
             self.handler,
         )
-        self.category_panel = CategoryPanel()
 
         self._move_plans: list[MovePlan] = []
 
