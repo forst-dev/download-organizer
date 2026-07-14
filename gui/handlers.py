@@ -30,7 +30,7 @@ class UIHandler:
     ) -> None:
         self._window = window
         self._table = table_manager
-        self.category_panel.selection_changed.connect(
+        self._window.category_panel.selection_changed.connect(
             self.on_category_changed
         )
 
@@ -145,20 +145,18 @@ class UIHandler:
         """
         Filter preview by selected categories.
         """
-        if not self._move_plans:
+        if not self._window._move_plans:
             return
 
         filtered = [
             plan
-            for plan in self._move_plans
+            for plan in self._window._move_plans
             if plan.category in categories
         ]
 
-        self.table_manager.show_move_plans(
-            filtered
-        )
+        self._table.show_move_plans(filtered)
 
-        self.set_status(
+        self._window.set_status(
             f"{len(filtered)}개 파일 선택됨"
         )
 
