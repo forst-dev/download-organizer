@@ -16,7 +16,8 @@ from services.duplicate_finder import DuplicateFile
 from services.large_file_finder import LargeFile
 from services.old_file_finder import OldFile
 from utils.format_utils import format_size
-
+from models.move_plan import MovePlan
+from models.move_result import MoveResult
 
 class TableManager:
     """
@@ -250,3 +251,123 @@ class TableManager:
                 )
 
                 row += 1
+
+    def show_move_plans(
+        self,
+        plans: list[MovePlan],
+    ) -> None:
+        """
+        Display organization preview.
+
+        Args:
+            plans:
+                List of planned file moves.
+        """
+        self.clear()
+
+        self._table.setColumnCount(3)
+
+        self._table.setHorizontalHeaderLabels(
+            [
+                "파일명",
+                "대상 폴더",
+                "이유",
+            ]
+        )
+
+        self._table.setRowCount(len(plans))
+
+        for row, plan in enumerate(plans):
+            self._table.setItem(
+                row,
+                0,
+                QTableWidgetItem(
+                    plan.file_name,
+                ),
+            )
+
+            self._table.setItem(
+                row,
+                1,
+                QTableWidgetItem(
+                    f"📁 {plan.category}",
+                ),
+            )
+
+            self._table.setItem(
+                row,
+                2,
+                QTableWidgetItem(
+                    plan.reason,
+                ),
+            )
+
+        self._table.resizeColumnsToContents()
+
+    def show_move_results(
+        self,
+        results: list[MoveResult],
+    ) -> None:
+        """
+        Display file move results.
+
+        Args:
+            results:
+                Results of file move operations.
+        """
+        self.clear()
+
+        self._table.setColumnCount(4)
+
+        self._table.setHorizontalHeaderLabels(
+            [
+                "상태",
+                "파일명",
+                "대상",
+                "메시지",
+            ]
+        )
+
+        self._table.setRowCount(
+            len(results)
+        )
+
+        for row, result in enumerate(results):
+
+            status = (
+                "✅ 완료"
+                if result.success
+                else "❌ 실패"
+            )
+
+            self._table.setItem(
+                row,
+                0,
+                QTableWidgetItem(status),
+            )
+
+            self._table.setItem(
+                row,
+                1,
+                QTableWidgetItem(
+                    result.file_name,
+                ),
+            )
+
+            self._table.setItem(
+                row,
+                2,
+                QTableWidgetItem(
+                    str(result.destination.parent.name),
+                ),
+            )
+
+            self._table.setItem(
+                row,
+                3,
+                QTableWidgetItem(
+                    result.message,
+                ),
+            )
+
+        self._table.resizeColumnsToContents()

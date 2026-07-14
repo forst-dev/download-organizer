@@ -28,6 +28,8 @@ from gui.worker_manager import WorkerManager
 from services.analyzer import AnalysisResult
 from utils.format_utils import format_size
 from utils.path_utils import get_downloads_folder
+from gui.category_panel import CategoryPanel
+from models.move_plan import MovePlan
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,9 @@ class MainWindow(QMainWindow):
         self.worker_manager = WorkerManager(
             self.handler,
         )
+        self.category_panel = CategoryPanel()
+
+        self._move_plans: list[MovePlan] = []
 
         logger.info("Main window initialized.")
         
@@ -107,6 +112,9 @@ class MainWindow(QMainWindow):
         self.summary_label = QLabel("")
 
         layout.addWidget(self.summary_label)
+
+        layout.addWidget(self.category_panel)
+        self.category_panel.hide()
 
         self.select_folder_button = QPushButton(
             "다운로드 폴더 선택"
@@ -164,6 +172,32 @@ class MainWindow(QMainWindow):
 
         self.duplicate_button.clicked.connect(
             self.on_duplicate_clicked
+        )
+
+        self.organize_button = QPushButton(
+            "🧹 폴더 정리"
+        )
+
+        layout.addWidget(
+            self.organize_button
+        )
+
+        self.organize_button.clicked.connect(
+            self.on_organize_clicked
+        )
+
+        self.start_move_button = PrimaryPushButton(
+            "✅ 선택한 파일 정리"
+        )
+
+        layout.addWidget(
+            self.start_move_button
+        )
+
+        self.start_move_button.hide()
+
+        self.start_move_button.clicked.connect(
+            self.on_start_move_clicked
         )
 
     def on_select_folder_clicked(self) -> None:
@@ -239,6 +273,30 @@ class MainWindow(QMainWindow):
         self.worker_manager.start_duplicate_search(
             self.current_folder,
         )
+        
+    def on_organize_clicked(self) -> None:
+        """
+        Generate organization preview.
+        """
+        if self.current_folder is None:
+            self.show_error(
+                "먼저 폴더를 선택해주세요."
+            )
+            return
+
+        self.show_loading(True)
+
+        self.set_status(
+            "정리 계획 생성 중..."
+        )
+
+        logger.info(
+            "Creating organization preview..."
+        )
+
+        self.worker_manager.start_organizer(
+            self.current_folder
+        )
 
     def show_loading(
         self,
@@ -250,9 +308,11 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(loading)
 
         self.select_folder_button.setEnabled(not loading)
+        self.organize_button.setEnabled(not loading)
         self.large_file_button.setEnabled(not loading)
         self.old_file_button.setEnabled(not loading)
         self.duplicate_button.setEnabled(not loading)
+        self.start_move_button.setEnabled(not loading)
 
     def set_status(
         self,
@@ -306,3 +366,46 @@ class MainWindow(QMainWindow):
         Check whether a folder is selected.
         """
         return self.current_folder is not None
+
+    def on_start_move_clicked(self) -> None:
+        """
+        Move selected files.
+        """
+        if not self._move_plans:
+            self.show_error(
+                "정리할 파일이 없습니다."
+            )
+            return
+
+        selected = set(
+            self.category_panel.selected_categories()
+        )
+
+        plans = [
+            plan
+            for plan in self._move_plans
+            if plan.category in selected
+        ]
+
+        if not plans:
+            self.show_error(
+                "선택된 파일이 없습니다."
+            )
+            return
+
+        self.show_loading(True)
+
+        self.progress_bar.setValue(0)
+
+        self.set_status(
+            "파일 이동 준비 중..."
+        )
+
+        logger.info(
+            "Starting move of %d files.",
+            len(plans),
+        )
+
+        self.worker_manager.start_move(
+            plans
+        )

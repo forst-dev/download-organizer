@@ -12,6 +12,8 @@ from services.large_file_finder import LargeFile
 from services.old_file_finder import OldFile
 
 from .table_manager import TableManager
+from models.move_plan import MovePlan
+from models.move_result import MoveResult
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,9 @@ class UIHandler:
     ) -> None:
         self._window = window
         self._table = table_manager
+        self.category_panel.selection_changed.connect(
+            self.on_category_changed
+        )
 
     def on_analysis_finished(
         self,
@@ -100,9 +105,125 @@ class UIHandler:
         message: str,
     ) -> None:
         """Handle worker error."""
-
         self._window.show_loading(False)
         self._window.set_status("오류 발생")
+        self._table.clear()
         self._window.show_error(message)
 
         logger.error(message)
+    
+    def on_organizer_finished(
+        self,
+        data,
+    ) -> None:
+        plans = data["plans"]
+        categories = data["categories"]
+        
+        self._window._move_plans = plans
+
+        self._window.show_loading(False)
+
+        self._window.set_status(
+            f"정리 미리보기 완료 ({len(plans)}개)"
+        )
+
+        self._window.category_panel.set_categories(categories)
+        self._window.category_panel.show()
+        self._window.start_move_button.show()
+
+        self._table.show_move_plans(plans)
+
+        logger.info(
+            "Displayed %d move plans.",
+            len(plans),
+        )
+
+    def on_category_changed(
+        self,
+        categories: list[str],
+    ) -> None:
+        """
+        Filter preview by selected categories.
+        """
+        if not self._move_plans:
+            return
+
+        filtered = [
+            plan
+            for plan in self._move_plans
+            if plan.category in categories
+        ]
+
+        self.table_manager.show_move_plans(
+            filtered
+        )
+
+        self.set_status(
+            f"{len(filtered)}개 파일 선택됨"
+        )
+
+        logger.info(
+            "Filtered %d files.",
+            len(filtered),
+        )
+
+    def on_move_finished(
+        self,
+        results: list[MoveResult],
+    ) -> None:
+        """
+        Handle file move completion.
+
+        Args:
+            results:
+                File move results.
+        """
+        self._window.show_loading(False)
+
+        success_count = sum(
+            result.success
+            for result in results
+        )
+
+        failed_count = len(results) - success_count
+
+        self._window.set_status(
+            f"정리 완료 (성공 {success_count}, 실패 {failed_count})"
+        )
+
+        self._table.show_move_results(results)
+
+        self._window.show_info(
+            (
+                "파일 정리가 완료되었습니다.\n\n"
+                f"성공 : {success_count}개\n"
+                f"실패 : {failed_count}개"
+            )
+        )
+        self._window.start_move_button.setEnabled(True)
+
+        logger.info(
+            "Move finished. Success=%d, Failed=%d",
+            success_count,
+            failed_count,
+        )
+
+    def on_move_progress(
+        self,
+        current: int,
+        total: int,
+    ) -> None:
+        """
+        Update move progress.
+        """
+        percent = int(
+            current * 100 / total
+        )
+
+        self._window.progress_bar.setValue(
+            percent
+        )
+
+        self._window.set_status(
+            f"파일 이동 중... ({current}/{total})"
+        )

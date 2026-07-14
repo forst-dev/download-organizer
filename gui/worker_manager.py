@@ -13,6 +13,12 @@ from workers.analyzer_worker import create_analyzer_thread
 from workers.duplicate_worker import create_duplicate_thread
 from workers.large_file_worker import create_large_file_thread
 from workers.old_file_worker import create_old_file_thread
+from workers.organizer_worker import create_organizer_thread
+from workers.file_mover_worker import (
+    create_file_mover_thread,
+)
+
+from models.move_plan import MovePlan
 
 logger = logging.getLogger(__name__)
 
@@ -122,3 +128,75 @@ class WorkerManager(QObject):
         )
 
         self._thread.start()
+
+    def start_organizer(
+        self,
+        folder: Path,
+    ) -> None:
+        """
+        Start organization preview.
+
+        Args:
+            folder:
+                Folder to organize.
+        """
+        logger.info(
+            "Starting organizer worker..."
+        )
+
+        self._thread, self._worker = (
+            create_organizer_thread(folder)
+        )
+
+        self._worker.finished.connect(
+            self._handler.on_organizer_finished
+        )
+
+        self._worker.error.connect(
+            self._handler.on_error
+        )
+
+        self._thread.start()
+
+        logger.info(
+            "Organizer worker started."
+        )
+
+    def start_move(
+        self,
+        plans: list[MovePlan],
+    ) -> None:
+        """
+        Start file move worker.
+
+        Args:
+            plans:
+                Files to move.
+        """
+        logger.info(
+            "Starting file mover..."
+        )
+
+        self._thread, self._worker = (
+            create_file_mover_thread(
+                plans
+            )
+        )
+
+        self._worker.finished.connect(
+            self._handler.on_move_finished
+        )
+
+        self._worker.progress.connect(
+            self._handler.on_move_progress
+        )
+
+        self._worker.error.connect(
+            self._handler.on_error
+        )
+
+        self._thread.start()
+
+        logger.info(
+            "File mover started."
+        )
