@@ -410,3 +410,13 @@ class MainWindow(QMainWindow):
         self.worker_manager.start_move(
             plans
         )
+
+    def show_info(
+        self,
+        message: str,
+    ) -> None:
+        QMessageBox.information(
+            self,
+            "완료",
+            message,
+        )
