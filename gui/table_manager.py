@@ -12,9 +12,9 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
 )
 
-from services.duplicate_finder import DuplicateFile
-from services.large_file_finder import LargeFile
-from services.old_file_finder import OldFile
+from services.duplicate_file_service import DuplicateFileService
+from services.large_file_service import LargeFileService
+from services.old_file_service import OldFileService
 from utils.format_utils import format_size
 from models.move_plan import MovePlan
 from models.move_result import MoveResult

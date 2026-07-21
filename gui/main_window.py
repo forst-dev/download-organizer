@@ -26,7 +26,7 @@ from config.settings import Settings
 from gui.handlers import UIHandler
 from gui.table_manager import TableManager
 from gui.worker_manager import WorkerManager
-from services.analyzer import AnalysisResult
+from services.analysis_service import AnalysisResult
 from utils.format_utils import format_size
 from utils.path_utils import get_downloads_folder
 from gui.category_panel import CategoryPanel
