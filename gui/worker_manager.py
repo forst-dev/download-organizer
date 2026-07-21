@@ -42,13 +42,18 @@ class WorkerManager(QObject):
         thread: QThread,
         worker: BaseWorker,
     ) -> None:
-
+        logger.info(
+            "Cleanup start"
+        )
         if thread in self._threads:
             self._threads.remove(thread)
 
         if worker in self._workers:
             self._workers.remove(worker)
 
+        logger.info(
+            "Cleanup end"
+        )
         logger.info(
             "Thread removed. Active=%d",
             len(self._threads),

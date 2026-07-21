@@ -48,21 +48,21 @@ class WorkerFactory:
             thread.quit,
         )
 
-        worker.finished.connect(
-            worker.deleteLater,
-        )
+        # worker.finished.connect(
+        #     worker.deleteLater,
+        # )
 
         worker.error.connect(
             thread.quit,
         )
 
-        worker.error.connect(
-            worker.deleteLater,
-        )
+        # worker.error.connect(
+        #     worker.deleteLater,
+        # )
 
-        thread.finished.connect(
-            thread.deleteLater,
-        )
+        # thread.finished.connect(
+        #     thread.deleteLater,
+        # )
 
         return (
             thread,
