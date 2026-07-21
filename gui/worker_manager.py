@@ -44,23 +44,18 @@ class WorkerManager(QObject):
         ) -> None:
             logger.info("Cleanup start")
 
-            # 1. 스레드가 이벤트 루프를 안전하게 종료하도록 요청
-            if thread.isRunning():
-                thread.quit()
-                # 스레드가 완전히 종료될 때까지 최대 1000ms(1초) 대기
-                if not thread.wait(1000):
-                    logger.warning("Thread did not terminate gracefully, forcing exit.")
-
-            # 2. worker 및 thread 리스트 안전 제거
             if worker in self._workers:
                 self._workers.remove(worker)
 
             if thread in self._threads:
                 self._threads.remove(thread)
 
-            # 3. Qt C++ 메모리 지연 삭제 예약 (GC가 즉시 파괴하지 못하도록 안전 처리)
-            worker.deleteLater()
-            thread.deleteLater()
+            try:
+                worker.deleteLater()
+                thread.quit() # 안전 요청만 전달
+                thread.deleteLater()
+            except Exception as e:
+                logger.warning(f"Error during deleteLater: {e}")
 
             logger.info("Cleanup end")
             logger.info(
@@ -73,17 +68,19 @@ class WorkerManager(QObject):
         result_handler: Callable,
         progress_handler: Callable | None = None,
     ) -> None:
-
+        logger.info("_start_worker")
         thread, worker = WorkerFactory.create(worker)
 
         worker.result.connect(result_handler)
         worker.error.connect(self._handler.on_error)
+        logger.info("worker connect")
 
         if (
             progress_handler is not None
             and hasattr(worker, "progress")
         ):
             worker.progress.connect(progress_handler)
+        logger.info("worker progress connect")
 
         thread.finished.connect(
             lambda: self._cleanup(
@@ -91,9 +88,11 @@ class WorkerManager(QObject):
                 worker,
             )
         )
+        logger.info("thread finished connect")
 
         self._threads.append(thread)
         self._workers.append(worker)
+        logger.info("thread thread fappend")
 
         logger.info(
             "Starting %s",
