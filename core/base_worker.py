@@ -5,14 +5,13 @@ Base worker for all background tasks.
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
 
 from PySide6.QtCore import QObject, Signal, Slot
 
 logger = logging.getLogger(__name__)
 
 
-class BaseWorker(QObject, ABC):
+class BaseWorker(QObject):
     """
     Base class for all background workers.
     """
@@ -55,7 +54,6 @@ class BaseWorker(QObject, ABC):
 
         self.finished.emit()
 
-    @abstractmethod
     def execute(self) -> None:
         """
         Execute worker logic.
