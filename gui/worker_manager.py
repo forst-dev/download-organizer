@@ -26,34 +26,31 @@ logger = logging.getLogger(__name__)
 
 
 class WorkerManager(QObject):
-    """
-    Manage background worker threads.
-    """
 
-    def __init__(
-        self,
-        handler,
-    ) -> None:
+    def __init__(self, handler) -> None:
         super().__init__()
 
         self._handler = handler
 
         self._threads: list[QThread] = []
+        self._workers: list[BaseWorker] = []
 
     def _cleanup(
         self,
         thread: QThread,
+        worker: BaseWorker,
     ) -> None:
-        """
-        Remove finished thread.
-        """
+
         if thread in self._threads:
             self._threads.remove(thread)
 
-            logger.info(
-                "Thread removed. Active=%d",
-                len(self._threads),
-            )
+        if worker in self._workers:
+            self._workers.remove(worker)
+
+        logger.info(
+            "Thread removed. Active=%d",
+            len(self._threads),
+        )
 
     def _start_worker(
         self,
@@ -61,45 +58,24 @@ class WorkerManager(QObject):
         result_handler: Callable,
         progress_handler: Callable | None = None,
     ) -> None:
-        """
-        Start a worker.
 
-        Args:
-            worker:
-                Worker instance.
+        thread, worker = WorkerFactory.create(worker)
 
-            result_handler:
-                Slot for result signal.
-
-            progress_handler:
-                Optional progress slot.
-        """
-
-        thread, worker = WorkerFactory.create(
-            worker
-        )
-
-        worker.result.connect(
-            result_handler
-        )
-
-        worker.error.connect(
-            self._handler.on_error
-        )
+        worker.result.connect(result_handler)
+        worker.error.connect(self._handler.on_error)
 
         if (
             progress_handler is not None
             and hasattr(worker, "progress")
         ):
-            worker.progress.connect(
-                progress_handler
-            )
+            worker.progress.connect(progress_handler)
 
         thread.finished.connect(
-            lambda t=thread: self._cleanup(t)
+            lambda t=thread, w=worker: self._cleanup(t, w)
         )
 
         self._threads.append(thread)
+        self._workers.append(worker)
 
         logger.info(
             "Starting %s",
@@ -107,8 +83,6 @@ class WorkerManager(QObject):
         )
 
         thread.start()
-
-    # -----------------------------------------
 
     def start_analysis(
         self,
@@ -127,10 +101,7 @@ class WorkerManager(QObject):
     ) -> None:
 
         self._start_worker(
-            LargeFileWorker(
-                folder,
-                limit,
-            ),
+            LargeFileWorker(folder, limit),
             self._handler.on_large_file_finished,
         )
 
@@ -141,10 +112,7 @@ class WorkerManager(QObject):
     ) -> None:
 
         self._start_worker(
-            OldFileWorker(
-                folder,
-                limit,
-            ),
+            OldFileWorker(folder, limit),
             self._handler.on_old_file_finished,
         )
 
