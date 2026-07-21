@@ -25,16 +25,6 @@ class WorkerFactory:
     def create(
         worker: T,
     ) -> tuple[QThread, T]:
-        """
-        Create a worker thread.
-
-        Args:
-            worker:
-                Worker instance.
-
-        Returns:
-            Thread and worker.
-        """
 
         thread = QThread()
 
@@ -48,21 +38,17 @@ class WorkerFactory:
             thread.quit,
         )
 
-        # worker.finished.connect(
-        #     worker.deleteLater,
-        # )
-
         worker.error.connect(
             thread.quit,
         )
 
-        # worker.error.connect(
-        #     worker.deleteLater,
-        # )
+        thread.finished.connect(
+            worker.deleteLater,
+        )
 
-        # thread.finished.connect(
-        #     thread.deleteLater,
-        # )
+        thread.finished.connect(
+            thread.deleteLater,
+        )
 
         return (
             thread,

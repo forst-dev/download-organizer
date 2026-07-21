@@ -47,8 +47,9 @@ class WorkerManager(QObject):
         if thread in self._threads:
             self._threads.remove(thread)
 
-        if worker in self._workers:
-            self._workers.remove(worker)
+        # 테스트로 주석처리
+        # if worker in self._workers:
+        #     self._workers.remove(worker)
 
         logger.info(
             "Cleanup end"
@@ -77,7 +78,10 @@ class WorkerManager(QObject):
             worker.progress.connect(progress_handler)
 
         thread.finished.connect(
-            lambda t=thread, w=worker: self._cleanup(t, w)
+            lambda: self._cleanup(
+                thread,
+                worker,
+            )
         )
 
         self._threads.append(thread)
