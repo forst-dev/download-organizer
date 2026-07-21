@@ -4,17 +4,14 @@ Create move plans for organizing files.
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
-
 from collections import Counter
 from models.move_plan import MovePlan
 from models.category_option import CategoryOption
+from core.base_service import BaseService
 
-logger = logging.getLogger(__name__)
 
-
-class Organizer:
+class OrganizationService(BaseService):
     """
     Create file organization plans without moving files.
     """
@@ -82,7 +79,7 @@ class Organizer:
 
     DEFAULT_CATEGORY = "Others"
 
-    def create_plan(
+    def execute(
         self,
         folder: Path,
     ) -> list[MovePlan]:
@@ -102,7 +99,7 @@ class Organizer:
         if not folder.is_dir():
             raise NotADirectoryError(folder)
 
-        logger.info(
+        self.logger.info(
             "Creating organization plan: %s",
             folder,
         )
@@ -130,7 +127,7 @@ class Organizer:
                 )
             )
 
-        logger.info(
+        self.logger.info(
             "Created %d move plans.",
             len(plans),
         )

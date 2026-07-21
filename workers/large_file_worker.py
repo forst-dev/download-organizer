@@ -1,108 +1,47 @@
 """
-Worker thread for finding large files.
+Worker for finding large files.
 """
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtCore import Signal
 
-from services.large_file_finder import LargeFile, LargeFileFinder
+from core.base_worker import BaseWorker
+from services.large_file_service import (
+    LargeFile,
+    LargeFileService,
+)
 
-logger = logging.getLogger(__name__)
 
-
-class LargeFileWorker(QObject):
+class LargeFileWorker(BaseWorker):
     """
-    Worker object for finding large files in a background thread.
+    Worker for finding large files.
     """
 
-    finished = Signal(object)
-    error = Signal(str)
+    result = Signal(object)
 
     def __init__(
         self,
         folder: Path,
         limit: int = 20,
     ) -> None:
-        """
-        Initialize worker.
-
-        Args:
-            folder:
-                Folder to analyze.
-
-            limit:
-                Maximum number of files to return.
-        """
         super().__init__()
 
         self._folder = folder
         self._limit = limit
+        self._service = LargeFileService()
 
-    @Slot()
-    def run(self) -> None:
+    def execute(self) -> None:
         """
-        Execute large file search.
+        Find large files.
         """
-        try:
-            logger.info("LargeFileWorker started.")
-
-            finder = LargeFileFinder()
-
-            result = finder.find(
+        files: list[LargeFile] = (
+            self._service.execute(
                 self._folder,
                 self._limit,
             )
+        )
 
-            self.finished.emit(result)
-
-            logger.info(
-                "LargeFileWorker finished. %d files found.",
-                len(result),
-            )
-
-        except Exception as exception:
-            logger.exception("LargeFileWorker failed.")
-            self.error.emit(str(exception))
-
-
-def create_large_file_thread(
-    folder: Path,
-    limit: int = 20,
-) -> tuple[QThread, LargeFileWorker]:
-    """
-    Create a worker thread for large file search.
-
-    Args:
-        folder:
-            Folder to analyze.
-
-        limit:
-            Maximum number of files.
-
-    Returns:
-        Configured thread and worker.
-    """
-    thread = QThread()
-
-    worker = LargeFileWorker(
-        folder=folder,
-        limit=limit,
-    )
-
-    worker.moveToThread(thread)
-
-    thread.started.connect(worker.run)
-
-    worker.finished.connect(thread.quit)
-    worker.finished.connect(worker.deleteLater)
-
-    worker.error.connect(thread.quit)
-    worker.error.connect(worker.deleteLater)
-
-    thread.finished.connect(thread.deleteLater)
-
-    return thread, worker
+        self.result.emit(files)

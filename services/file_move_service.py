@@ -4,21 +4,19 @@ Move files according to move plans.
 
 from __future__ import annotations
 
-import logging
 import shutil
 
 from models.move_plan import MovePlan
 from models.move_result import MoveResult
+from core.base_service import BaseService
 
-logger = logging.getLogger(__name__)
 
-
-class FileMover:
+class FileMoveService(BaseService):
     """
     Execute file move operations.
     """
 
-    def move(
+    def execute(
         self,
         plans: list[MovePlan],
     ) -> list[MoveResult]:
@@ -34,7 +32,7 @@ class FileMover:
         """
         results: list[MoveResult] = []
 
-        logger.info(
+        self.logger.info(
             "Starting file move. (%d files)",
             len(plans),
         )
@@ -49,7 +47,7 @@ class FileMover:
             for result in results
         )
 
-        logger.info(
+        self.logger.info(
             "File move completed. %d/%d succeeded.",
             success_count,
             len(results),
@@ -84,7 +82,7 @@ class FileMover:
                 str(plan.destination),
             )
 
-            logger.info(
+            self.logger.info(
                 "Moved: %s -> %s",
                 plan.source.name,
                 plan.destination,
@@ -98,7 +96,7 @@ class FileMover:
             )
 
         except Exception as exception:
-            logger.exception(
+            self.logger.exception(
                 "Failed to move: %s",
                 plan.source,
             )

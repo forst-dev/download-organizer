@@ -4,11 +4,9 @@ Find large files in a folder.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
+from core.base_service import BaseService
 
 
 @dataclass(slots=True)
@@ -22,12 +20,12 @@ class LargeFile:
     size: int
 
 
-class LargeFileFinder:
+class LargeFileService(BaseService):
     """
     Find the largest files in a folder.
     """
 
-    def find(
+    def execute(
         self,
         folder: Path,
         limit: int = 20,
@@ -46,14 +44,14 @@ class LargeFileFinder:
             List of LargeFile sorted by size.
         """
         if not folder.exists():
-            logger.error("Folder does not exist: %s", folder)
+            self.logger.error("Folder does not exist: %s", folder)
             raise FileNotFoundError(folder)
 
         if not folder.is_dir():
-            logger.error("Path is not a directory: %s", folder)
+            self.logger.error("Path is not a directory: %s", folder)
             raise NotADirectoryError(folder)
 
-        logger.info(
+        self.logger.info(
             "Finding top %d largest files in %s",
             limit,
             folder,
@@ -75,7 +73,7 @@ class LargeFileFinder:
                 )
 
             except OSError:
-                logger.exception(
+                self.logger.exception(
                     "Failed to read file: %s",
                     path,
                 )
@@ -87,7 +85,7 @@ class LargeFileFinder:
 
         result = files[:limit]
 
-        logger.info(
+        self.logger.info(
             "Found %d large files.",
             len(result),
         )

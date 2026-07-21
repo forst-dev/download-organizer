@@ -4,11 +4,9 @@ Analyze files and folders.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
+from core.base_service import BaseService
 
 
 @dataclass(slots=True)
@@ -22,12 +20,12 @@ class AnalysisResult:
     total_size: int
 
 
-class Analyzer:
+class AnalysisService(BaseService):
     """
     Analyze a folder and collect basic statistics.
     """
 
-    def analyze(self, folder: Path) -> AnalysisResult:
+    def execute(self, folder: Path) -> AnalysisResult:
         """
         Analyze the specified folder.
 
@@ -42,18 +40,18 @@ class Analyzer:
             NotADirectoryError: If path is not a directory.
         """
         if not folder.exists():
-            logger.error("Folder does not exist: %s", folder)
+            self.logger.error("Folder does not exist: %s", folder)
             raise FileNotFoundError(folder)
 
         if not folder.is_dir():
-            logger.error("Path is not a directory: %s", folder)
+            self.logger.error("Path is not a directory: %s", folder)
             raise NotADirectoryError(folder)
 
         file_count = 0
         folder_count = 0
         total_size = 0
 
-        logger.info("Start analyzing: %s", folder)
+        self.logger.info("Start analyzing: %s", folder)
 
         for path in folder.rglob("*"):
             try:
@@ -65,9 +63,9 @@ class Analyzer:
                     folder_count += 1
 
             except OSError:
-                logger.exception("Failed to analyze: %s", path)
+                self.logger.exception("Failed to analyze: %s", path)
 
-        logger.info(
+        self.logger.info(
             "Analysis complete. Files=%d, Folders=%d, Size=%d bytes",
             file_count,
             folder_count,

@@ -1,24 +1,26 @@
 """
-Manage worker threads.
+Manage background workers.
 """
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Callable
 
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, QThread
 
-from workers.analyzer_worker import create_analyzer_thread
-from workers.duplicate_worker import create_duplicate_thread
-from workers.large_file_worker import create_large_file_thread
-from workers.old_file_worker import create_old_file_thread
-from workers.organizer_worker import create_organizer_thread
-from workers.file_mover_worker import (
-    create_file_mover_thread,
-)
+from core.base_worker import BaseWorker
+from core.worker_factory import WorkerFactory
 
 from models.move_plan import MovePlan
+
+from workers.analyzer_worker import AnalyzerWorker
+from workers.large_file_worker import LargeFileWorker
+from workers.old_file_worker import OldFileWorker
+from workers.duplicate_worker import DuplicateWorker
+from workers.organizer_worker import OrganizerWorker
+from workers.file_mover_worker import FileMoverWorker
 
 logger = logging.getLogger(__name__)
 
@@ -36,167 +38,143 @@ class WorkerManager(QObject):
 
         self._handler = handler
 
-        self._thread = None
-        self._worker = None
+        self._threads: list[QThread] = []
+
+    def _cleanup(
+        self,
+        thread: QThread,
+    ) -> None:
+        """
+        Remove finished thread.
+        """
+        if thread in self._threads:
+            self._threads.remove(thread)
+
+            logger.info(
+                "Thread removed. Active=%d",
+                len(self._threads),
+            )
+
+    def _start_worker(
+        self,
+        worker: BaseWorker,
+        result_handler: Callable,
+        progress_handler: Callable | None = None,
+    ) -> None:
+        """
+        Start a worker.
+
+        Args:
+            worker:
+                Worker instance.
+
+            result_handler:
+                Slot for result signal.
+
+            progress_handler:
+                Optional progress slot.
+        """
+
+        thread, worker = WorkerFactory.create(
+            worker
+        )
+
+        worker.result.connect(
+            result_handler
+        )
+
+        worker.error.connect(
+            self._handler.on_error
+        )
+
+        if (
+            progress_handler is not None
+            and hasattr(worker, "progress")
+        ):
+            worker.progress.connect(
+                progress_handler
+            )
+
+        thread.finished.connect(
+            lambda t=thread: self._cleanup(t)
+        )
+
+        self._threads.append(thread)
+
+        logger.info(
+            "Starting %s",
+            worker.__class__.__name__,
+        )
+
+        thread.start()
+
+    # -----------------------------------------
 
     def start_analysis(
         self,
         folder: Path,
     ) -> None:
-        """Start folder analysis."""
 
-        logger.info("Starting analyzer worker.")
-
-        self._thread, self._worker = create_analyzer_thread(folder)
-
-        self._worker.finished.connect(
-            self._handler.on_analysis_finished
+        self._start_worker(
+            AnalyzerWorker(folder),
+            self._handler.on_analysis_finished,
         )
-
-        self._worker.error.connect(
-            self._handler.on_error
-        )
-
-        self._thread.start()
 
     def start_large_file_search(
         self,
         folder: Path,
         limit: int = 20,
     ) -> None:
-        """Start large file search."""
 
-        logger.info("Starting large file worker.")
-
-        self._thread, self._worker = create_large_file_thread(
-            folder,
-            limit,
+        self._start_worker(
+            LargeFileWorker(
+                folder,
+                limit,
+            ),
+            self._handler.on_large_file_finished,
         )
-
-        self._worker.finished.connect(
-            self._handler.on_large_file_finished
-        )
-
-        self._worker.error.connect(
-            self._handler.on_error
-        )
-
-        self._thread.start()
 
     def start_old_file_search(
         self,
         folder: Path,
         limit: int = 20,
     ) -> None:
-        """Start old file search."""
 
-        logger.info("Starting old file worker.")
-
-        self._thread, self._worker = create_old_file_thread(
-            folder,
-            limit,
+        self._start_worker(
+            OldFileWorker(
+                folder,
+                limit,
+            ),
+            self._handler.on_old_file_finished,
         )
-
-        self._worker.finished.connect(
-            self._handler.on_old_file_finished
-        )
-
-        self._worker.error.connect(
-            self._handler.on_error
-        )
-
-        self._thread.start()
 
     def start_duplicate_search(
         self,
         folder: Path,
     ) -> None:
-        """Start duplicate file search."""
 
-        logger.info("Starting duplicate worker.")
-
-        self._thread, self._worker = create_duplicate_thread(
-            folder,
+        self._start_worker(
+            DuplicateWorker(folder),
+            self._handler.on_duplicate_finished,
         )
-
-        self._worker.finished.connect(
-            self._handler.on_duplicate_finished
-        )
-
-        self._worker.error.connect(
-            self._handler.on_error
-        )
-
-        self._thread.start()
 
     def start_organizer(
         self,
         folder: Path,
     ) -> None:
-        """
-        Start organization preview.
 
-        Args:
-            folder:
-                Folder to organize.
-        """
-        logger.info(
-            "Starting organizer worker..."
-        )
-
-        self._thread, self._worker = (
-            create_organizer_thread(folder)
-        )
-
-        self._worker.finished.connect(
-            self._handler.on_organizer_finished
-        )
-
-        self._worker.error.connect(
-            self._handler.on_error
-        )
-
-        self._thread.start()
-
-        logger.info(
-            "Organizer worker started."
+        self._start_worker(
+            OrganizerWorker(folder),
+            self._handler.on_organizer_finished,
         )
 
     def start_move(
         self,
         plans: list[MovePlan],
     ) -> None:
-        """
-        Start file move worker.
 
-        Args:
-            plans:
-                Files to move.
-        """
-        logger.info(
-            "Starting file mover..."
-        )
-
-        self._thread, self._worker = (
-            create_file_mover_thread(
-                plans
-            )
-        )
-
-        self._worker.finished.connect(
-            self._handler.on_move_finished
-        )
-
-        self._worker.progress.connect(
-            self._handler.on_move_progress
-        )
-
-        self._worker.error.connect(
-            self._handler.on_error
-        )
-
-        self._thread.start()
-
-        logger.info(
-            "File mover started."
+        self._start_worker(
+            FileMoverWorker(plans),
+            self._handler.on_move_finished,
+            self._handler.on_move_progress,
         )

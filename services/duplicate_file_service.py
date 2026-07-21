@@ -5,11 +5,9 @@ Find duplicate files in a folder.
 from __future__ import annotations
 
 import hashlib
-import logging
 from dataclasses import dataclass
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
+from core.base_service import BaseService
 
 BUFFER_SIZE = 1024 * 1024  # 1 MB
 
@@ -26,12 +24,12 @@ class DuplicateFile:
     hash: str
 
 
-class DuplicateFinder:
+class DuplicateFileService(BaseService):
     """
     Find duplicate files using file size and SHA-256 hash.
     """
 
-    def find(
+    def execute(
         self,
         folder: Path,
     ) -> list[list[DuplicateFile]]:
@@ -46,14 +44,14 @@ class DuplicateFinder:
             Duplicate groups.
         """
         if not folder.exists():
-            logger.error("Folder does not exist: %s", folder)
+            self.logger.error("Folder does not exist: %s", folder)
             raise FileNotFoundError(folder)
 
         if not folder.is_dir():
-            logger.error("Path is not a directory: %s", folder)
+            self.logger.error("Path is not a directory: %s", folder)
             raise NotADirectoryError(folder)
 
-        logger.info("Searching duplicate files: %s", folder)
+        self.logger.info("Searching duplicate files: %s", folder)
 
         size_groups: dict[int, list[Path]] = {}
 
@@ -67,7 +65,7 @@ class DuplicateFinder:
                 size_groups.setdefault(size, []).append(path)
 
             except OSError:
-                logger.exception("Failed to read file: %s", path)
+                self.logger.exception("Failed to read file: %s", path)
 
         duplicate_groups: list[list[DuplicateFile]] = []
 
@@ -94,7 +92,7 @@ class DuplicateFinder:
                     ).append(duplicate)
 
                 except OSError:
-                    logger.exception(
+                    self.logger.exception(
                         "Failed to hash file: %s",
                         path,
                     )
@@ -103,7 +101,7 @@ class DuplicateFinder:
                 if len(duplicates) >= 2:
                     duplicate_groups.append(duplicates)
 
-        logger.info(
+        self.logger.info(
             "Duplicate groups found: %d",
             len(duplicate_groups),
         )
