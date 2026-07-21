@@ -82,16 +82,16 @@ class OrganizationService(BaseService):
     def execute(
         self,
         folder: Path,
-    ) -> list[MovePlan]:
+    ) -> tuple[list[MovePlan], list[CategoryOption]]:
         """
-        Create move plans for all files in the folder.
+        Create move plans and category options for files in the folder.
 
         Args:
             folder:
                 Target folder.
 
         Returns:
-            List of MovePlan.
+            Tuple containing move plans and category options.
         """
         if not folder.exists():
             raise FileNotFoundError(folder)
@@ -105,6 +105,7 @@ class OrganizationService(BaseService):
         )
 
         plans: list[MovePlan] = []
+        category_counts: dict[str, int] = {}
 
         for path in folder.iterdir():
             if not path.is_file():
@@ -127,12 +128,29 @@ class OrganizationService(BaseService):
                 )
             )
 
+            category_counts[category] = (
+                category_counts.get(category, 0) + 1
+            )
+
+        categories = [
+            CategoryOption(
+                name=name,
+                count=count,
+            )
+            for name, count in category_counts.items()
+        ]
+
         self.logger.info(
             "Created %d move plans.",
             len(plans),
         )
 
-        return plans
+        self.logger.info(
+            "Created %d categories.",
+            len(categories),
+        )
+
+        return plans, categories
 
     def _classify(
         self,
