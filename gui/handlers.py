@@ -6,10 +6,10 @@ from __future__ import annotations
 
 import logging
 
-from services.analyzer import AnalysisResult
-from services.duplicate_finder import DuplicateFile
-from services.large_file_finder import LargeFile
-from services.old_file_finder import OldFile
+from services.analysis_service import AnalysisResult
+from services.duplicate_file_service import DuplicateFile
+from services.large_file_service import LargeFile
+from services.old_file_service import OldFile
 
 from .table_manager import TableManager
 from models.move_plan import MovePlan
