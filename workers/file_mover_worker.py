@@ -6,12 +6,12 @@ from __future__ import annotations
 
 import logging
 
-from PySide6.QtCore import QObject, QThread, Signal, Slot
-
+from PySide6.QtCore import Signal
 from models.move_plan import MovePlan
 from models.move_result import MoveResult
 from services.file_move_service import FileMoveService
 from core.base_worker import BaseWorker
+from services.history_service import HistoryService
 
 
 class FileMoverWorker(BaseWorker):
@@ -22,11 +22,16 @@ class FileMoverWorker(BaseWorker):
     def __init__(
         self,
         plans: list[MovePlan],
+        history_service: HistoryService,
     ) -> None:
         super().__init__()
 
         self._plans = plans
-        self._service = FileMoveService()
+        self._history_service = history_service
+
+        self._service = FileMoveService(
+            self._history_service
+        )
 
     def execute(self) -> None:
 

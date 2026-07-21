@@ -9,12 +9,22 @@ import shutil
 from models.move_plan import MovePlan
 from models.move_result import MoveResult
 from core.base_service import BaseService
+from datetime import datetime
+from models.move_history import MoveHistory
+from services.history_service import HistoryService
 
 
 class FileMoveService(BaseService):
     """
     Execute file move operations.
     """
+    def __init__(
+        self,
+        history_service: HistoryService,
+    ) -> None:
+        super().__init__()
+
+        self._history_service = history_service
 
     def execute(
         self,
@@ -81,11 +91,23 @@ class FileMoveService(BaseService):
                 str(plan.source),
                 str(plan.destination),
             )
-
             self.logger.info(
                 "Moved: %s -> %s",
                 plan.source.name,
                 plan.destination,
+            )
+
+            self.logger.info(
+                "History saved: %s -> %s",
+                plan.source,
+                plan.destination,
+            )
+            self._history_service.add(
+                MoveHistory(
+                    source=plan.source,
+                    destination=plan.destination,
+                    moved_at=datetime.now(),
+                )
             )
 
             return MoveResult(
