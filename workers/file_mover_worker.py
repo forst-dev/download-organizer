@@ -14,6 +14,8 @@ from core.base_worker import BaseWorker
 from services.history_service import HistoryService
 
 
+logger = logging.getLogger(__name__)
+
 class FileMoverWorker(BaseWorker):
 
     result = Signal(object)
