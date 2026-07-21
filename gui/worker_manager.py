@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QObject, QThread
+from PySide6.QtCore import QThread, QObject, Signal
 
 from core.base_worker import BaseWorker
 from core.worker_factory import WorkerFactory
@@ -38,28 +38,35 @@ class WorkerManager(QObject):
         self._workers: list[BaseWorker] = []
 
     def _cleanup(
-        self,
-        thread: QThread,
-        worker: BaseWorker,
-    ) -> None:
-        logger.info(
-            "Cleanup start"
-        )
-        if thread in self._threads:
-            self._threads.remove(thread)
+            self,
+            thread: QThread,
+            worker: BaseWorker,
+        ) -> None:
+            logger.info("Cleanup start")
 
-        # 테스트로 주석처리
-        # if worker in self._workers:
-        #     self._workers.remove(worker)
+            # 1. 스레드가 이벤트 루프를 안전하게 종료하도록 요청
+            if thread.isRunning():
+                thread.quit()
+                # 스레드가 완전히 종료될 때까지 최대 1000ms(1초) 대기
+                if not thread.wait(1000):
+                    logger.warning("Thread did not terminate gracefully, forcing exit.")
 
-        logger.info(
-            "Cleanup end"
-        )
-        logger.info(
-            "Thread removed. Active=%d",
-            len(self._threads),
-        )
+            # 2. worker 및 thread 리스트 안전 제거
+            if worker in self._workers:
+                self._workers.remove(worker)
 
+            if thread in self._threads:
+                self._threads.remove(thread)
+
+            # 3. Qt C++ 메모리 지연 삭제 예약 (GC가 즉시 파괴하지 못하도록 안전 처리)
+            worker.deleteLater()
+            thread.deleteLater()
+
+            logger.info("Cleanup end")
+            logger.info(
+                "Thread removed. Active=%d",
+                len(self._threads),
+            )
     def _start_worker(
         self,
         worker: BaseWorker,

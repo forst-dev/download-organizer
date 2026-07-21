@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import sys
-
+import traceback
 from PySide6.QtWidgets import QApplication
 
 from config.settings import Settings
@@ -54,6 +54,19 @@ def main() -> int:
         logger.exception("Unexpected error occurred while starting the application.")
         return 1
 
+def exception_hook(exctype, value, tb):
+    err_msg = "".join(traceback.format_exception(exctype, value, tb))
+
+    print("=" * 50)
+    print("Uncaught Exception Occurred:")
+    print(err_msg)
+    print("=" * 50)
+
+    logger.critical("Unhandled exception caught by sys.excepthook:\n%s", err_msg)
+
+    sys.__excepthook__(exctype, value, tb)
+
 
 if __name__ == "__main__":
+    sys.excepthook = exception_hook
     sys.exit(main())
