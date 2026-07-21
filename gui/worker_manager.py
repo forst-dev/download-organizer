@@ -21,7 +21,6 @@ from workers.old_file_worker import OldFileWorker
 from workers.duplicate_worker import DuplicateWorker
 from workers.organizer_worker import OrganizerWorker
 from workers.file_mover_worker import FileMoverWorker
-from services.history_service import HistoryService
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +148,7 @@ class WorkerManager(QObject):
     ) -> None:
 
         self._start_worker(
-            FileMoverWorker(plans, HistoryService()),
+            FileMoverWorker(plans),
             self._handler.on_move_finished,
             self._handler.on_move_progress,
         )
