@@ -24,15 +24,14 @@ class FileMoverWorker(BaseWorker):
     def __init__(
         self,
         plans: list[MovePlan],
+        history_service: HistoryService,
     ) -> None:
         super().__init__()
 
         self._plans = plans
 
-        self._history_service = HistoryService()
-
         self._service = FileMoveService(
-            self._history_service
+            history_service
         )
 
     def execute(self) -> None:
