@@ -49,9 +49,17 @@ class FileMoverWorker(BaseWorker):
 
             results.append(result)
 
+            logger.info(
+                "FileMoverWorker emitting result. count=%d",
+                len(results),
+            )
             self.progress.emit(
                 current,
                 total,
             )
 
         self.result.emit(results)
+
+        logger.info(
+            "FileMoverWorker result emitted."
+        )
