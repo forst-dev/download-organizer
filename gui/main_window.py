@@ -420,3 +420,7 @@ class MainWindow(QMainWindow):
             "완료",
             message,
         )
+
+    def closeEvent(self, event) -> None:
+        logger.info("MainWindow closeEvent")
+        super().closeEvent(event)

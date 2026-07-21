@@ -32,6 +32,14 @@ def main() -> int:
 
         app = QApplication(sys.argv)
 
+        app.lastWindowClosed.connect(
+            lambda: logger.info("LAST WINDOW CLOSED")
+        )
+
+        app.aboutToQuit.connect(
+            lambda: logger.info("APP ABOUT TO QUIT")
+        )
+
         # Load settings (creates settings.json automatically if it doesn't exist)
         Settings.load()
 
