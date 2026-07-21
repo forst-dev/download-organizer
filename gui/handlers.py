@@ -183,26 +183,14 @@ class UIHandler:
             result.success
             for result in results
         )
-        logger.info("111")
 
         failed_count = len(results) - success_count
-        logger.info("222")
 
         self._window.set_status(
             f"정리 완료 (성공 {success_count}, 실패 {failed_count})"
         )
 
         self._table.show_move_results(results)
-        logger.info("333")
-
-        self._window.show_info(
-            (
-                "파일 정리가 완료되었습니다.\n\n"
-                f"성공 : {success_count}개\n"
-                f"실패 : {failed_count}개"
-            )
-        )
-        logger.info("444")
 
         self._window.start_move_button.setEnabled(True)
 
