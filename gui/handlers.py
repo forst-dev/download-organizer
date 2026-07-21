@@ -178,6 +178,7 @@ class UIHandler:
         """
         logger.info(">>> on_move_finished entered")
         self._window.show_loading(False)
+        logger.info("show_loading")
 
         success_count = sum(
             result.success
@@ -185,12 +186,15 @@ class UIHandler:
         )
 
         failed_count = len(results) - success_count
+        logger.info("failed_count")
 
         self._window.set_status(
             f"정리 완료 (성공 {success_count}, 실패 {failed_count})"
         )
+        logger.info("move completion")
 
         self._table.show_move_results(results)
+        logger.info("BEFORE BUTTON ENABLE")
 
         self._window.start_move_button.setEnabled(True)
 

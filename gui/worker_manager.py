@@ -32,7 +32,7 @@ class WorkerManager(QObject):
         super().__init__()
 
         self._handler = handler
-        self._history_service = HistoryService()
+        # self._history_service = HistoryService()
 
         self._threads: list[QThread] = []
         self._workers: list[BaseWorker] = []
@@ -144,7 +144,7 @@ class WorkerManager(QObject):
     ) -> None:
 
         self._start_worker(
-            FileMoverWorker(plans, self._history_service),
+            FileMoverWorker(plans, HistoryService()),
             self._handler.on_move_finished,
             self._handler.on_move_progress,
         )
