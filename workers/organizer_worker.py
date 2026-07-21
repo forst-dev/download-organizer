@@ -12,6 +12,7 @@ from PySide6.QtCore import QObject, QThread, Signal, Slot
 from models.move_plan import MovePlan
 from services.organization_service import OrganizationService
 from models.category_option import CategoryOption
+from core.base_worker import BaseWorker
 
 
 class OrganizerWorker(BaseWorker):

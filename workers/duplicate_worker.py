@@ -10,6 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from services.duplicate_file_service import DuplicateFileService
+from core.base_worker import BaseWorker
 
 
 class DuplicateWorker(BaseWorker):

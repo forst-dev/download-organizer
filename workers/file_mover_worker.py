@@ -11,6 +11,7 @@ from PySide6.QtCore import QObject, QThread, Signal, Slot
 from models.move_plan import MovePlan
 from models.move_result import MoveResult
 from services.file_move_service import FileMoveService
+from core.base_worker import BaseWorker
 
 
 class FileMoverWorker(BaseWorker):

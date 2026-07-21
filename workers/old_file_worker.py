@@ -10,6 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from services.old_file_service import OldFileService
+from core.base_worker import BaseWorker
 
 
 class OldFileWorker(BaseWorker):
