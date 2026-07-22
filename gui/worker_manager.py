@@ -22,6 +22,7 @@ from workers.duplicate_worker import DuplicateWorker
 from workers.organizer_worker import OrganizerWorker
 from workers.file_mover_worker import FileMoverWorker
 from services.history_service import HistoryService
+from shiboken6 import isValid
 
 logger = logging.getLogger(__name__)
 
@@ -38,30 +39,43 @@ class WorkerManager(QObject):
         self._workers: list[BaseWorker] = []
 
     def _cleanup(
-            self,
-            thread: QThread,
-            worker: BaseWorker,
-        ) -> None:
-            logger.info("Cleanup start")
+        self,
+        thread: QThread,
+        worker: BaseWorker,
+    ) -> None:
+        logger.info("Cleanup start")
 
-            if worker in self._workers:
-                self._workers.remove(worker)
+        # 1. 리스트에서 관리 대상 제거
+        if worker in self._workers:
+            self._workers.remove(worker)
 
-            if thread in self._threads:
-                self._threads.remove(thread)
+        if thread in self._threads:
+            self._threads.remove(thread)
 
-            try:
+        # 2. Worker C++ 객체가 아직 유효할 때만 deleteLater 호출
+        try:
+            if isValid(worker):
                 worker.deleteLater()
-                thread.quit() # 안전 요청만 전달
-                thread.deleteLater()
-            except Exception as e:
-                logger.warning(f"Error during deleteLater: {e}")
+        except Exception as e:
+            logger.warning(f"Error during worker deleteLater: {e}")
 
-            logger.info("Cleanup end")
-            logger.info(
-                "Thread removed. Active=%d",
-                len(self._threads),
-            )
+        # 3. Thread C++ 객체가 유효하면 quit 및 deleteLater
+        try:
+            if isValid(thread):
+                if thread.isRunning():
+                    thread.quit()
+                thread.deleteLater()
+            elif thread.isRunning():
+                thread.quit()
+        except Exception as e:
+            logger.warning(f"Error during thread deleteLater: {e}")
+
+        logger.info("Cleanup end")
+        logger.info(
+            "Thread removed. Active=%d",
+            len(self._threads),
+        )
+        
     def _start_worker(
         self,
         worker: BaseWorker,
