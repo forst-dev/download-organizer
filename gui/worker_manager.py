@@ -23,6 +23,7 @@ from workers.organizer_worker import OrganizerWorker
 from workers.file_mover_worker import FileMoverWorker
 from services.history_service import HistoryService
 from shiboken6 import isValid
+from workers.undo_worker import UndoWorker
 
 logger = logging.getLogger(__name__)
 
@@ -179,4 +180,12 @@ class WorkerManager(QObject):
             ),
             self._handler.on_move_finished,
             self._handler.on_move_progress,
+        )
+        
+    def start_undo(self) -> None:
+        self._start_worker(
+            UndoWorker(
+                self._history_service,
+            ),
+            self._handler.on_undo_finished,
         )

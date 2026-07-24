@@ -96,12 +96,6 @@ class FileMoveService(BaseService):
                 plan.source.name,
                 plan.destination,
             )
-
-            self.logger.info(
-                "History saved: %s -> %s",
-                plan.source,
-                plan.destination,
-            )
             self._history_service.add(
                 MoveHistory(
                     source=plan.source,
@@ -109,6 +103,7 @@ class FileMoveService(BaseService):
                     moved_at=datetime.now(),
                 )
             )
+            self.logger.info("History service add")
 
             return MoveResult(
                 source=plan.source,

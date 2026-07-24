@@ -35,30 +35,27 @@ class FileMoverWorker(BaseWorker):
         )
 
     def execute(self) -> None:
+        """
+        Move files.
+        """
 
-        results: list[MoveResult] = []
+        results = self._service.execute(
+            self._plans
+        )
 
-        total = len(self._plans)
+        total = len(results)
 
-        for current, plan in enumerate(
-            self._plans,
-            start=1,
-        ):
+        for current in range(total):
 
-            result = self._service.execute(
-                [plan]
-            )[0]
-
-            results.append(result)
-
-            logger.info(
-                "FileMoverWorker emitting result. count=%d",
-                len(results),
-            )
             self.progress.emit(
-                current,
+                current + 1,
                 total,
             )
+
+        logger.info(
+            "FileMoverWorker emitting result. count=%d",
+            total,
+        )
 
         self.result.emit(results)
 

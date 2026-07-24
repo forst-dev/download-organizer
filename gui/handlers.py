@@ -198,6 +198,9 @@ class UIHandler:
 
         self._window.start_move_button.setEnabled(True)
 
+        self._window.undo_button.show()
+        self._window.undo_button.setEnabled(True)
+
         logger.info(
             "Move finished. Success=%d, Failed=%d",
             success_count,
@@ -222,4 +225,42 @@ class UIHandler:
 
         self._window.set_status(
             f"파일 이동 중... ({current}/{total})"
+        )
+
+    def on_undo_finished(
+        self,
+        results: list[MoveResult],
+    ) -> None:
+        """
+        Handle undo completion.
+        """
+        self._window.show_loading(False)
+
+        success_count = sum(
+            result.success
+            for result in results
+        )
+
+        failed_count = len(results) - success_count
+
+        self._window.set_status(
+            f"되돌리기 완료 (성공 {success_count}, 실패 {failed_count})"
+        )
+
+        self._table.show_move_results(results)
+
+        self._window.show_info(
+            (
+                "되돌리기가 완료되었습니다.\n\n"
+                f"성공 : {success_count}개\n"
+                f"실패 : {failed_count}개"
+            )
+        )
+
+        self._window.undo_button.hide()
+
+        logger.info(
+            "Undo finished. Success=%d Failed=%d",
+            success_count,
+            failed_count,
         )

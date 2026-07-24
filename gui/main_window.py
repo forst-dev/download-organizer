@@ -201,6 +201,20 @@ class MainWindow(QMainWindow):
             self.on_start_move_clicked
         )
 
+        self.undo_button = PrimaryPushButton(
+            "↩ 되돌리기"
+        )
+
+        layout.addWidget(
+            self.undo_button
+        )
+
+        self.undo_button.hide()
+
+        self.undo_button.clicked.connect(
+            self.on_undo_clicked
+        )
+
     def on_select_folder_clicked(self) -> None:
         """
         Select a folder and start analysis.
@@ -424,3 +438,21 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:
         logger.info("MainWindow closeEvent")
         super().closeEvent(event)
+
+    def on_undo_clicked(self) -> None:
+        """
+        Restore moved files.
+        """
+        self.show_loading(True)
+
+        self.progress_bar.setValue(0)
+
+        self.set_status(
+            "되돌리는 중..."
+        )
+
+        logger.info(
+            "Starting undo."
+        )
+
+        self.worker_manager.start_undo()
